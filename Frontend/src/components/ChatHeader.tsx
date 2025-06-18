@@ -3,15 +3,18 @@ import { X } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
 
-// Define the shape of a user (adjust if you already have a User type elsewhere)
-interface User {
+// If you already have an AuthUser type, extend it to include profilePic
+type AuthUser = {
   _id: string;
   fullName: string;
   profilePic?: string;
-}
+};
 
 const ChatHeader: React.FC = () => {
-  const { selectedUser, setSelectedUser } = useChatStore();
+  const { selectedUser, setSelectedUser } = useChatStore() as {
+    selectedUser: AuthUser | null;
+    setSelectedUser: (user: AuthUser | null) => void;
+  };
   const { onlineUsers } = useAuthStore();
 
   if (!selectedUser) return null;

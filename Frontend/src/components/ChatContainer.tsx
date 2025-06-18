@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
 
@@ -7,13 +7,28 @@ import MessageInput from "./MessageInput";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
 import { formatMessageTime } from "../lib/utils";
 
-// Define a message type (you may already have this somewhere)
+// Message type
 interface Message {
   _id?: string;
   senderId: string;
   text?: string;
   image?: string;
   createdAt: string;
+}
+
+// AuthUser with profilePic
+interface AuthUser {
+  _id: string;
+  fullName: string;
+  email: string;
+  profilePic?: string;
+}
+
+// Selected user type (adjust as needed)
+interface User {
+  _id: string;
+  fullName: string;
+  profilePic?: string;
 }
 
 const ChatContainer: React.FC = () => {
@@ -26,22 +41,25 @@ const ChatContainer: React.FC = () => {
     unsubscribeFromMessages,
   } = useChatStore();
 
+  // Cast selectedUser to User | null to get typings
+  const user = selectedUser as User | null;
+
   const { authUser } = useAuthStore();
+  const auth = authUser as AuthUser | null;
+
   const messageEndRef = useRef<HTMLDivElement | null>(null);
 
-  // Load messages and subscribe to real-time updates
   useEffect(() => {
-    if (!selectedUser?._id) return;
+    if (!user?._id) return;
 
-    getMessages(selectedUser._id);
+    getMessages(user._id);
     subscribeToMessages();
 
     return () => {
       unsubscribeFromMessages();
     };
-  }, [selectedUser?._id, getMessages, subscribeToMessages, unsubscribeFromMessages]);
+  }, [user?._id, getMessages, subscribeToMessages, unsubscribeFromMessages]);
 
-  // Auto-scroll to bottom when messages change
   useEffect(() => {
     if (messageEndRef.current) {
       messageEndRef.current.scrollIntoView({ behavior: "smooth" });
@@ -70,7 +88,7 @@ const ChatContainer: React.FC = () => {
             <div
               key={message._id || index}
               className={`chat ${
-                message.senderId === authUser._id
+                auth && message.senderId === auth._id
                   ? "chat-end"
                   : message.senderId === "bot"
                   ? "chat-start"
@@ -82,11 +100,11 @@ const ChatContainer: React.FC = () => {
                 <div className="size-10 rounded-full border">
                   <img
                     src={
-                      message.senderId === authUser._id
-                        ? authUser.profilePic || "/avatar.png"
+                      auth && message.senderId === auth._id
+                        ? auth.profilePic || "/avatar.png"
                         : message.senderId === "bot"
                         ? "/bot-avatar.png"
-                        : selectedUser?.profilePic || "/avatar.png"
+                        : user?.profilePic || "/avatar.png"
                     }
                     alt="profile"
                   />

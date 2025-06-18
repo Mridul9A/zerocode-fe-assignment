@@ -1,4 +1,5 @@
-import { useRef, useState, FormEvent, KeyboardEvent, ChangeEvent } from "react";
+import { useRef, useState } from "react";
+import type { KeyboardEvent, ChangeEvent, FormEvent } from "react";
 import { useChatStore } from "../store/useChatStore";
 import { Image, Send, X, Mic, Download } from "lucide-react";
 import toast from "react-hot-toast";
@@ -8,6 +9,11 @@ declare global {
     webkitSpeechRecognition: any;
   }
 }
+
+type SendMessageArgs = {
+  text: string;
+  image?: string | null;
+};
 
 const MessageInput: React.FC = () => {
   const [text, setText] = useState<string>("");
@@ -41,17 +47,17 @@ const MessageInput: React.FC = () => {
     e.preventDefault();
     if (!text.trim() && !imagePreview) return;
 
-    try {
-      if (imagePreview || text.trim().length > 0) {
-        await sendMessage({
-          text: text.trim(),
-          image: imagePreview,
-        });
+    const payload: SendMessageArgs = {
+      text: text.trim(),
+      image: imagePreview,
+    };
 
-        if (text.trim().length > 0) {
-          await sendBotMessage(text.trim());
-          setHistory((prev) => [...prev, text.trim()]);
-        }
+    try {
+      await sendMessage(payload);
+
+      if (text.trim().length > 0) {
+        await sendBotMessage(text.trim());
+        setHistory((prev) => [...prev, text.trim()]);
       }
 
       setText("");
@@ -60,6 +66,7 @@ const MessageInput: React.FC = () => {
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (error) {
       console.error("Failed to send message:", error);
+      toast.error("Failed to send message");
     }
   };
 
@@ -113,6 +120,7 @@ const MessageInput: React.FC = () => {
               onClick={removeImage}
               className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-base-300 flex items-center justify-center"
               type="button"
+              aria-label="Remove image preview"
             >
               <X className="size-3" />
             </button>
@@ -128,6 +136,7 @@ const MessageInput: React.FC = () => {
             placeholder="Type a message..."
             value={text}
             onChange={(e) => setText(e.target.value)}
+            aria-label="Message input"
           />
           <input
             type="file"
@@ -141,6 +150,7 @@ const MessageInput: React.FC = () => {
             type="button"
             className={`hidden sm:flex btn btn-circle ${imagePreview ? "text-emerald-500" : "text-zinc-400"}`}
             onClick={() => fileInputRef.current?.click()}
+            aria-label="Upload image"
           >
             <Image size={20} />
           </button>
@@ -152,6 +162,7 @@ const MessageInput: React.FC = () => {
             onClick={startVoiceInput}
             className="btn btn-sm btn-circle text-blue-500"
             title="Voice input"
+            aria-label="Start voice input"
           >
             <Mic size={20} />
           </button>
@@ -161,6 +172,7 @@ const MessageInput: React.FC = () => {
             onClick={exportChat}
             className="btn btn-sm btn-circle text-green-600"
             title="Export chat"
+            aria-label="Export chat history"
           >
             <Download size={20} />
           </button>
@@ -169,6 +181,7 @@ const MessageInput: React.FC = () => {
             type="submit"
             className="btn btn-sm btn-circle"
             disabled={!text.trim() && !imagePreview}
+            aria-label="Send message"
           >
             <Send size={22} />
           </button>

@@ -40,6 +40,11 @@ if (process.env.NODE_ENV === "production") {
   console.log("Production mode — API only. Frontend is deployed separately.");
 }
 
+app.get("/", (req, res) => {
+  res.send("Backend API is running. Available routes: /api/auth, /api/messages, /api/bot");
+});
+
+
 
 server.listen(PORT, () => {
   console.log("server is running on PORT:" + PORT);

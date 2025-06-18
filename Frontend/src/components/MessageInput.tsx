@@ -5,8 +5,41 @@ import { Image, Send, X, Mic, Download } from "lucide-react";
 import toast from "react-hot-toast";
 
 declare global {
+  // Add SpeechRecognitionEvent type to the global scope
+  interface SpeechRecognitionEvent extends Event {
+    results: SpeechRecognitionResultList;
+  }
+
+  interface SpeechRecognitionResultList {
+    readonly length: number;
+    [index: number]: SpeechRecognitionResult;
+  }
+
+  interface SpeechRecognitionResult {
+    readonly length: number;
+    [index: number]: SpeechRecognitionAlternative;
+    readonly isFinal: boolean;
+  }
+
+  interface SpeechRecognitionAlternative {
+    readonly transcript: string;
+    readonly confidence: number;
+  }
+
+  // Add SpeechRecognition type to the global scope
+  interface SpeechRecognition extends EventTarget {
+    lang: string;
+    start(): void;
+    stop(): void;
+    onresult: ((event: SpeechRecognitionEvent) => void) | null;
+    // Add other properties/methods as needed
+  }
+
   interface Window {
-    webkitSpeechRecognition: any;
+    webkitSpeechRecognition: {
+      new (): SpeechRecognition;
+      prototype: SpeechRecognition;
+    };
   }
 }
 
@@ -87,7 +120,7 @@ const MessageInput: React.FC = () => {
     try {
       const recognition = new window.webkitSpeechRecognition();
       recognition.lang = "en-US";
-      recognition.onresult = (event: any) => {
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
         setText(event.results[0][0].transcript);
       };
       recognition.start();

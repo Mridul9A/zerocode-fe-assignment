@@ -3,13 +3,17 @@ import { axiosInstance } from "../lib/axios";
 import toast from "react-hot-toast";
 import { io, Socket } from "socket.io-client";
 
-const BASE_URL = import.meta.env.MODE === "development" ? "http://localhost:5001" : "/";
+const BASE_URL = import.meta.env.MODE === "development" ? "http://localhost:5002" : "/";
 
 export interface AuthUser {
   _id: string;
   name: string;
   email: string;
-  // Add other fields as needed
+}
+
+export interface UpdateProfileData {
+  name?: string;
+  email?: string;
 }
 
 export interface AuthState {
@@ -22,12 +26,31 @@ export interface AuthState {
   socket: Socket | null;
 
   checkAuth: () => Promise<void>;
-  signup: (data: Record<string, any>) => Promise<void>;
-  login: (data: Record<string, any>) => Promise<void>;
+  signup: (data: { name: string; email: string; password: string }) => Promise<void>;
+  login: (data: { email: string; password: string }) => Promise<void>;
   logout: () => Promise<void>;
-  updateProfile: (data: Record<string, any>) => Promise<void>;
+  updateProfile: (data: UpdateProfileData) => Promise<void>;
   connectSocket: () => void;
   disconnectSocket: () => void;
+}
+
+// Helper to extract error message from Axios-like errors
+function getErrorMessage(error: unknown): string {
+  if (
+    error &&
+    typeof error === "object" &&
+    "response" in error &&
+    error.response &&
+    typeof error.response === "object" &&
+    "data" in error.response &&
+    error.response.data &&
+    typeof error.response.data === "object" &&
+    "message" in error.response.data &&
+    typeof error.response.data.message === "string"
+  ) {
+    return error.response.data.message;
+  }
+  return "An error occurred";
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -44,7 +67,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const res = await axiosInstance.get("/auth/check");
       set({ authUser: res.data });
       get().connectSocket();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error in checkAuth:", error);
       set({ authUser: null });
     } finally {
@@ -59,8 +82,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ authUser: res.data });
       toast.success("Account created successfully");
       get().connectSocket();
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Signup failed");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error) || "Signup failed");
     } finally {
       set({ isSigningUp: false });
     }
@@ -73,8 +96,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ authUser: res.data });
       toast.success("Logged in successfully");
       get().connectSocket();
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Login failed");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error) || "Login failed");
     } finally {
       set({ isLoggingIn: false });
     }
@@ -84,10 +107,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       await axiosInstance.post("/auth/logout");
       set({ authUser: null });
-      toast.success("Logged out successfully");
       get().disconnectSocket();
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Logout failed");
+      toast.success("Logged out successfully");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error) || "Logout failed");
     }
   },
 
@@ -97,31 +120,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const res = await axiosInstance.put("/auth/update-profile", data);
       set({ authUser: res.data });
       toast.success("Profile updated successfully");
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Update failed");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error) || "Update failed");
     } finally {
       set({ isUpdatingProfile: false });
     }
   },
 
   connectSocket: () => {
-    const { authUser } = get();
-    if (!authUser || get().socket?.connected) return;
+    const { authUser, socket } = get();
+    if (!authUser || socket?.connected) return;
 
-    const socket = io(BASE_URL, {
+    const newSocket = io(BASE_URL, {
       query: { userId: authUser._id },
     });
 
-    socket.connect();
-    set({ socket });
+    newSocket.connect();
+    set({ socket: newSocket });
 
-    socket.on("getOnlineUsers", (userIds: string[]) => {
+    newSocket.on("getOnlineUsers", (userIds: string[]) => {
       set({ onlineUsers: userIds });
     });
   },
 
   disconnectSocket: () => {
     const socket = get().socket;
-    if (socket?.connected) socket.disconnect();
+    if (socket?.connected) {
+      socket.disconnect();
+      set({ socket: null, onlineUsers: [] });
+    }
   },
 }));

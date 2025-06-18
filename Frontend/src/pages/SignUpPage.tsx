@@ -52,7 +52,11 @@ const SignUpPage: React.FC = () => {
     e.preventDefault();
 
     if (validateForm()) {
-      signup(formData);
+      signup({
+        name: formData.fullName,
+        email: formData.email,
+        password: formData.password,
+      });
     }
   };
 

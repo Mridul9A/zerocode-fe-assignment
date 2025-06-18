@@ -1,10 +1,20 @@
+import React from "react";
 import { X } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
 
-const ChatHeader = () => {
+// Define the shape of a user (adjust if you already have a User type elsewhere)
+interface User {
+  _id: string;
+  fullName: string;
+  profilePic?: string;
+}
+
+const ChatHeader: React.FC = () => {
   const { selectedUser, setSelectedUser } = useChatStore();
   const { onlineUsers } = useAuthStore();
+
+  if (!selectedUser) return null;
 
   return (
     <div className="p-2.5 border-b border-base-300">
@@ -13,7 +23,10 @@ const ChatHeader = () => {
           {/* Avatar */}
           <div className="avatar">
             <div className="size-10 rounded-full relative">
-              <img src={selectedUser.profilePic || "/avatar.png"} alt={selectedUser.fullName} />
+              <img
+                src={selectedUser.profilePic || "/avatar.png"}
+                alt={selectedUser.fullName}
+              />
             </div>
           </div>
 
@@ -34,4 +47,5 @@ const ChatHeader = () => {
     </div>
   );
 };
+
 export default ChatHeader;

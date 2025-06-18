@@ -1,19 +1,25 @@
-import { useRef, useState } from "react";
+import { useRef, useState, FormEvent, KeyboardEvent, ChangeEvent } from "react";
 import { useChatStore } from "../store/useChatStore";
 import { Image, Send, X, Mic, Download } from "lucide-react";
 import toast from "react-hot-toast";
 
-const MessageInput = () => {
-  const [text, setText] = useState("");
-  const [imagePreview, setImagePreview] = useState(null);
-  const [history, setHistory] = useState([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
-  const fileInputRef = useRef(null);
+declare global {
+  interface Window {
+    webkitSpeechRecognition: any;
+  }
+}
+
+const MessageInput: React.FC = () => {
+  const [text, setText] = useState<string>("");
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [history, setHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState<number>(-1);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { sendMessage, sendBotMessage, messages } = useChatStore();
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
+  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (!file?.type?.startsWith("image/")) {
       toast.error("Please select an image file");
       return;
@@ -21,7 +27,7 @@ const MessageInput = () => {
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      setImagePreview(reader.result);
+      setImagePreview(reader.result as string);
     };
     reader.readAsDataURL(file);
   };
@@ -31,7 +37,7 @@ const MessageInput = () => {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleSendMessage = async (e) => {
+  const handleSendMessage = async (e: FormEvent) => {
     e.preventDefault();
     if (!text.trim() && !imagePreview) return;
 
@@ -42,7 +48,6 @@ const MessageInput = () => {
           image: imagePreview,
         });
 
-        // Send to bot if text only
         if (text.trim().length > 0) {
           await sendBotMessage(text.trim());
           setHistory((prev) => [...prev, text.trim()]);
@@ -58,7 +63,7 @@ const MessageInput = () => {
     }
   };
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = (e: KeyboardEvent<HTMLFormElement>) => {
     if (e.key === "ArrowUp" && history.length && historyIndex < history.length - 1) {
       const newIndex = historyIndex + 1;
       setHistoryIndex(newIndex);
@@ -75,7 +80,7 @@ const MessageInput = () => {
     try {
       const recognition = new window.webkitSpeechRecognition();
       recognition.lang = "en-US";
-      recognition.onresult = (event) => {
+      recognition.onresult = (event: any) => {
         setText(event.results[0][0].transcript);
       };
       recognition.start();
@@ -106,8 +111,7 @@ const MessageInput = () => {
             />
             <button
               onClick={removeImage}
-              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-base-300
-              flex items-center justify-center"
+              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-base-300 flex items-center justify-center"
               type="button"
             >
               <X className="size-3" />
@@ -116,11 +120,7 @@ const MessageInput = () => {
         </div>
       )}
 
-      <form
-        onSubmit={handleSendMessage}
-        onKeyDown={handleKeyDown}
-        className="flex items-center gap-2"
-      >
+      <form onSubmit={handleSendMessage} onKeyDown={handleKeyDown} className="flex items-center gap-2">
         <div className="flex-1 flex gap-2">
           <input
             type="text"
@@ -139,8 +139,7 @@ const MessageInput = () => {
 
           <button
             type="button"
-            className={`hidden sm:flex btn btn-circle
-              ${imagePreview ? "text-emerald-500" : "text-zinc-400"}`}
+            className={`hidden sm:flex btn btn-circle ${imagePreview ? "text-emerald-500" : "text-zinc-400"}`}
             onClick={() => fileInputRef.current?.click()}
           >
             <Image size={20} />

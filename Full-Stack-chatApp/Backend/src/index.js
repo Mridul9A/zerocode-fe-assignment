@@ -41,8 +41,9 @@ if (process.env.NODE_ENV === "production") {
 }
 
 app.get("/", (req, res) => {
-  res.send("Backend API is running. Available routes: /api/auth, /api/messages, /api/bot");
+  res.redirect("http://localhost:5174");
 });
+
 
 
 
